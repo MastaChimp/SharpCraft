@@ -40,6 +40,8 @@ namespace TinkerWorX.ExamplePlugin
                 case "mapinit":
                     DisplayTextToPlayer(JassPlayer.FromLocal(), 0, 0, "You started a map!");
                     DisplayTextToPlayer(JassPlayer.FromLocal(), 0, 0, "Hit |cffffcc00ESC|r to spawn some units under your cursor!");
+                    DisplayTextToPlayer(JassPlayer.FromLocal(), 0, 0, "|cffffcc00Lidgren.Network|r");
+                    DisplayTextToPlayer(JassPlayer.FromLocal(), 0, 0, " - Resolve('google.com') = " + Lidgren.Network.NetUtility.Resolve("google.com"));
                     break;
 
                 case "tick":
