@@ -1,16 +1,15 @@
-﻿using EasyHook;
-using TinkerWorX.SharpCraft.Core;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows.Forms;
-using Assembly = System.Reflection.Assembly;
-using TinkerWorX.SharpCraft.Game.Jass;
+using EasyHook;
+using TinkerWorX.SharpCraft.Core;
 using TinkerWorX.SharpCraft.Game.Core;
+using TinkerWorX.SharpCraft.Game.Jass;
+using Assembly = System.Reflection.Assembly;
 
 namespace TinkerWorX.SharpCraft.Game
 {
@@ -39,11 +38,6 @@ namespace TinkerWorX.SharpCraft.Game
                 Trace.WriteLine(DateTime.Now);
 
                 AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
-
-                this.pluginManager = new PluginManager();
-                Trace.WriteLine("Loading plugins . . . ");
-                this.pluginManager.LoadPlugins();
-                Trace.WriteLine(" - Done!");
             }
             catch (Exception exception)
             {
@@ -76,13 +70,21 @@ namespace TinkerWorX.SharpCraft.Game
         {
             try
             {
+                this.pluginManager = new PluginManager();
+                Trace.WriteLine("Loading plugins . . . ");
+                this.pluginManager.LoadPlugins();
+                Trace.WriteLine(" - Done!");
+                Trace.WriteLine(String.Empty);
+
                 Trace.WriteLine("Initializing WarcraftIII . . . ");
                 WarcraftIII.Initialize();
                 Trace.WriteLine(" - Done!");
+                Trace.WriteLine(String.Empty);
 
                 Trace.WriteLine("Initializing plugins . . . ");
                 this.pluginManager.InitializePlugins();
                 Trace.WriteLine(" - Done!");
+                Trace.WriteLine(String.Empty);
 
                 //Trace.WriteLine("Initializing dev . . . ");
                 //Dev.Initialize();
