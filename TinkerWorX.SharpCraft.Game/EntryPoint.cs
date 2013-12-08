@@ -86,9 +86,9 @@ namespace TinkerWorX.SharpCraft.Game
                 Trace.WriteLine(" - Done!");
                 Trace.WriteLine(String.Empty);
 
-                //Trace.WriteLine("Initializing dev . . . ");
-                //Dev.Initialize();
-                //Trace.WriteLine(" - Done!");
+                Trace.WriteLine("Initializing dev . . . ");
+                Dev.Initialize();
+                Trace.WriteLine(" - Done!");
 
                 RemoteHooking.WakeUpProcess();
             }
@@ -171,6 +171,47 @@ namespace TinkerWorX.SharpCraft.Game
             }
         }
 
+        //BOOL __stdcall SRegLoadData(char *keyname, char *valuename, HKEY phkResult, LPBYTE lpData, int a5, LPDWORD lpcbData)
+        [DllImport("storm.dll", EntryPoint = "#421")]
+        private static extern Boolean SRegLoadData(String keyname, String valuename, IntPtr a3, IntPtr a4, IntPtr a5, IntPtr a6);
+        private delegate Boolean SRegLoadDataDelegate(String keyname, String valuename, IntPtr a3, IntPtr a4, IntPtr a5, IntPtr a6);
+        private static LocalHook SRegLoadDataLocalHook;
+        private static Boolean SRegLoadDataHook(String keyname, String valuename, IntPtr a3, IntPtr a4, IntPtr a5, IntPtr a6)
+        {
+            var result = SRegLoadData(keyname, valuename, a3, a4, a5, a6);
+
+            Trace.WriteLine(String.Format("SRegLoadData({0}, {1}, ...) = {2}", keyname, valuename, result));
+
+            return result;
+        }
+
+        //BOOL __stdcall SRegLoadString(char *keyname, char *valuename, int a3, char *buffer, size_t buffersize)
+        [DllImport("storm.dll", EntryPoint = "#422")]
+        private static extern Boolean SRegLoadString(String keyname, String valuename, IntPtr a3, IntPtr a4, IntPtr a5);
+        private delegate Boolean SRegLoadStringDelegate(String keyname, String valuename, IntPtr a3, IntPtr a4, IntPtr a5);
+        private static LocalHook SRegLoadStringLocalHook;
+        private static Boolean SRegLoadStringHook(String keyname, String valuename, IntPtr a3, IntPtr a4, IntPtr a5)
+        {
+            var result = SRegLoadString(keyname, valuename, a3, a4, a5);
+
+            Trace.WriteLine(String.Format("SRegLoadValue({0}, {1}, ...) = {2}", keyname, valuename, result));
+
+            return result;
+        }
+
+        //BOOL __stdcall SRegLoadValue(char *keyname, char *valuename, int a3, int value)
+        [DllImport("storm.dll", EntryPoint = "#423")]
+        private static extern Boolean SRegLoadValue(String keyname, String valuename, IntPtr a3, IntPtr a4);
+        private delegate Boolean SRegLoadValueDelegate(String keyname, String valuename, IntPtr a3, IntPtr a4);
+        private static LocalHook SRegLoadValueLocalHook;
+        private static Boolean SRegLoadValueHook(String keyname, String valuename, IntPtr a3, IntPtr a4)
+        {
+            var result = SRegLoadValue(keyname, valuename, a3, a4);
+
+            Trace.WriteLine(String.Format("SRegLoadValue({0}, {1}, ...) = {2}", keyname, valuename, result));
+
+            return result;
+        }
 
         [UnmanagedFunctionPointer(CallingConvention.ThisCall)]  // A cheat for __fastcall when there is only one argument.
         private delegate IntPtr TriggerToPtrDelegate(JassTrigger trigger);
@@ -193,6 +234,27 @@ namespace TinkerWorX.SharpCraft.Game
         [UnmanagedFunctionPointer(CallingConvention.ThisCall)]  // A cheat for __fastcall when there is only one argument.
         private delegate IntPtr sub_6F3BDCB0Delegate(JassUnit unit);
         private static sub_6F3BDCB0Delegate sub_6F3BDCB0;
+
+        //int __thiscall sub_6F2860B0(int this, int a2, int a3, int a4, int a5, int a6, int a7)
+        [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
+        private delegate IntPtr sub_6F2860B0Delegate(IntPtr _this, JassOrder a2, IntPtr a3, IntPtr a4, IntPtr a5, IntPtr a6, IntPtr a7);
+        private static sub_6F2860B0Delegate sub_6F2860B0;
+        private static LocalHook sub_6F2860B0LocalHook;
+
+        private static IntPtr sub_6F2860B0Hook(IntPtr _this, JassOrder a2, IntPtr a3, IntPtr a4, IntPtr a5, IntPtr a6, IntPtr a7)
+        {
+            var result = sub_6F2860B0(_this, a2, a3, a4, a5, a6, a7);
+
+            Trace.WriteLine(String.Format("sub_6F2860B0(...) = {0}", "0x" + result.ToString("X8")));
+            Trace.WriteLine(" - a2: " + a2.ToString()); // order
+            Trace.WriteLine(" - a3: 0x" + a3.ToString("X8")); // only observed as zero
+            Trace.WriteLine(" - a4: 0x" + a4.ToString("X8")); // this contains a pointer to a unit if it's caused by a trigger, if not, it's just blank.
+            Trace.WriteLine(" - a5: " + WarcraftIII.Memory.Read<Single>(a5)); // float* x
+            Trace.WriteLine(" - a6: " + WarcraftIII.Memory.Read<Single>(a6)); // float* y
+            Trace.WriteLine(" - a7: 0x" + a7.ToString("X8")); // only observed as zero
+            //MessageBox.Show("Hackit!");
+            return result;
+        }
 
         //void *__thiscall sub_6F3A1D00(void *this, int a2)
         [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
@@ -278,10 +340,14 @@ namespace TinkerWorX.SharpCraft.Game
         private static IntPtr LastOrderTargetPtr;
         private static IntPtr sub_6F4C1AB0Hook(IntPtr _this, IntPtr a2, String a3, IntPtr a4)
         {
+            if (a3 == ".?AVCOrderTarget@@")
+            {
+                //MessageBox.Show("orderPoint: prepare");
+            }
             var result = sub_6F4C1AB0(_this, a2, a3, a4);
 
-            if (!ignore.Contains(a3))
-                Trace.WriteLine(String.Format(DateTime.Now.ToLongTimeString() + ": sub_6F4C1AB0(..., {2}, ...) = {4}", "_this", a2, a3, a4, "0x" + result.ToString("X8")));
+            //if (!ignore.Contains(a3))
+            //    Trace.WriteLine(String.Format(DateTime.Now.ToLongTimeString() + ": sub_6F4C1AB0(..., {2}, ...) = {4}", "_this", a2, a3, a4, "0x" + result.ToString("X8")));
 
             if (a3 == ".?AVCOrderPoint@@")
             {
@@ -295,6 +361,7 @@ namespace TinkerWorX.SharpCraft.Game
                 LastOrderTargetPtr = result;
                 var orderPoint = (OrderPoint)Marshal.PtrToStructure(LastOrderTargetPtr, typeof(OrderPoint));
                 Trace.WriteLine(String.Format("A unit was issued a '{0}' order to ({1}; {2}).", orderPoint.Order, orderPoint.X, orderPoint.Y));
+                //MessageBox.Show("orderPoint: 0x" + result.ToString("X8"));
             }
 
             if (a3 == ".?AVCPlayerUnitPointOrderEventData@@")
@@ -343,37 +410,39 @@ namespace TinkerWorX.SharpCraft.Game
             sub_6F3BDCB0 = (sub_6F3BDCB0Delegate)Marshal.GetDelegateForFunctionPointer((IntPtr)(WarcraftIII.Module + 0x003BDCB0), typeof(sub_6F3BDCB0Delegate));
             Console.WriteLine("Fetching sub_6F4C1AB0 . . . ");
             sub_6F4C1AB0 = (sub_6F4C1AB0Delegate)Marshal.GetDelegateForFunctionPointer((IntPtr)(WarcraftIII.Module + 0x004C1AB0), typeof(sub_6F4C1AB0Delegate));
+            Console.WriteLine("Fetching sub_6F2860B0 . . . ");
+            sub_6F2860B0 = (sub_6F2860B0Delegate)Marshal.GetDelegateForFunctionPointer((IntPtr)(WarcraftIII.Module + 0x002860B0), typeof(sub_6F2860B0Delegate));
 
             Console.Write("Fetching Cheat . . . ");
-            _Cheat = WarcraftIII.GetNative("Cheat").ToDelegate<CheatDelegate>();
+            _Cheat = WarcraftIII.Jass.GetNative("Cheat").ToDelegate<CheatDelegate>();
             Console.WriteLine("Done!");
 
             Console.Write("Fetching SetUnitAnimation . . . ");
-            _SetUnitAnimation = WarcraftIII.GetNative("SetUnitAnimation").ToDelegate<SetUnitAnimationDelegate>();
+            _SetUnitAnimation = WarcraftIII.Jass.GetNative("SetUnitAnimation").ToDelegate<SetUnitAnimationDelegate>();
             Console.WriteLine("Done!");
 
             Console.Write("Fetching CreateTrigger . . . ");
-            _CreateTrigger = WarcraftIII.GetNative("CreateTrigger").ToDelegate<CreateTriggerDelegate>();
+            _CreateTrigger = WarcraftIII.Jass.GetNative("CreateTrigger").ToDelegate<CreateTriggerDelegate>();
             Console.WriteLine("Done!");
 
             Console.Write("Fetching TriggerExecute . . . ");
-            _TriggerExecute = WarcraftIII.GetNative("TriggerExecute").ToDelegate<TriggerExecuteDelegate>();
+            _TriggerExecute = WarcraftIII.Jass.GetNative("TriggerExecute").ToDelegate<TriggerExecuteDelegate>();
             Console.WriteLine("Done!");
 
             Console.Write("Fetching TriggerAddAction . . . ");
-            _TriggerAddAction = WarcraftIII.GetNative("TriggerAddAction").ToDelegate<TriggerAddActionDelegate>();
+            _TriggerAddAction = WarcraftIII.Jass.GetNative("TriggerAddAction").ToDelegate<TriggerAddActionDelegate>();
             Console.WriteLine("Done!");
 
             Console.Write("Replacing Cheat . . . ");
-            WarcraftIII.AddNative(new CheatDelegate(CheatHook), "Cheat");
+            WarcraftIII.Jass.AddNative(new CheatDelegate(CheatHook), "Cheat");
             Console.WriteLine("Done!");
 
             Console.Write("Replacing TriggerAddAction . . . ");
-            WarcraftIII.AddNative(new TriggerAddActionDelegate(TriggerAddActionHook), "TriggerAddAction");
+            WarcraftIII.Jass.AddNative(new TriggerAddActionDelegate(TriggerAddActionHook), "TriggerAddAction");
             Console.WriteLine("Done!");
 
             Console.Write("Replacing SetUnitAnimation . . . ");
-            WarcraftIII.AddNative(new SetUnitAnimationDelegate(SetUnitAnimationHook), "SetUnitAnimation");
+            WarcraftIII.Jass.AddNative(new SetUnitAnimationDelegate(SetUnitAnimationHook), "SetUnitAnimation");
             Console.WriteLine("Done!");
 
             Console.Write("Installing sub_6F3A1D00 hook . . . ");
@@ -384,6 +453,26 @@ namespace TinkerWorX.SharpCraft.Game
             Console.Write("Installing sub_6F4C1AB0 hook . . . ");
             sub_6F4C1AB0LocalHook = LocalHook.Create((IntPtr)(WarcraftIII.Module + 0x004C1AB0), new sub_6F4C1AB0Delegate(sub_6F4C1AB0Hook), null);
             sub_6F4C1AB0LocalHook.ThreadACL.SetExclusiveACL(new[] { 0 });
+            Console.WriteLine("Done!");
+
+            Console.Write("Installing sub_6F2860B0 hook . . . ");
+            sub_6F2860B0LocalHook = LocalHook.Create((IntPtr)(WarcraftIII.Module + 0x002860B0), new sub_6F2860B0Delegate(sub_6F2860B0Hook), null);
+            sub_6F2860B0LocalHook.ThreadACL.SetExclusiveACL(new[] { 0 });
+            Console.WriteLine("Done!");
+
+            Console.Write("Installing SRegLoadData hook . . . ");
+            SRegLoadDataLocalHook = LocalHook.Create(Kernel32.GetProcAddress(Kernel32.GetModuleHandle("storm.dll"), 421), new SRegLoadDataDelegate(SRegLoadDataHook), null);
+            SRegLoadDataLocalHook.ThreadACL.SetExclusiveACL(new[] { 0 });
+            Console.WriteLine("Done!");
+
+            Console.Write("Installing SRegLoadString hook . . . ");
+            SRegLoadStringLocalHook = LocalHook.Create(Kernel32.GetProcAddress(Kernel32.GetModuleHandle("storm.dll"), 422), new SRegLoadStringDelegate(SRegLoadStringHook), null);
+            SRegLoadStringLocalHook.ThreadACL.SetExclusiveACL(new[] { 0 });
+            Console.WriteLine("Done!");
+
+            Console.Write("Installing SRegLoadValue hook . . . ");
+            SRegLoadValueLocalHook = LocalHook.Create(Kernel32.GetProcAddress(Kernel32.GetModuleHandle("storm.dll"), 423), new SRegLoadValueDelegate(SRegLoadValueHook), null);
+            SRegLoadValueLocalHook.ThreadACL.SetExclusiveACL(new[] { 0 });
             Console.WriteLine("Done!");
         }
     }

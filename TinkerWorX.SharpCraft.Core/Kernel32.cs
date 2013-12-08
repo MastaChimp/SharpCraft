@@ -40,6 +40,12 @@ namespace TinkerWorX.SharpCraft.Core
         [DllImport("kernel32", SetLastError = true)]
         public static extern bool AttachConsole(Int32 processId);
 
+        [DllImport("kernel32", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
+        public static extern IntPtr GetProcAddress(IntPtr module, String proc);
+
+        [DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
+        public static extern IntPtr GetProcAddress(IntPtr module, Int32 ordinal);
+
         /// <summary>
         /// Open a process
         /// </summary>
